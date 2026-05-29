@@ -1,0 +1,275 @@
+{
+  "up_axis": "z",
+  "cameras": [
+    {
+      "id": "v0_cam0",
+      "position": [
+        -0.11054,
+        -0.82478,
+        0.50863
+      ],
+      "target": [
+        0.66125,
+        -0.21202,
+        0.33875
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v0_cam0.png"
+    },
+    {
+      "id": "v0_cam1",
+      "position": [
+        0.28455,
+        0.84003,
+        0.32059
+      ],
+      "target": [
+        0.69445,
+        -0.0721,
+        0.32295
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v0_cam1.png"
+    },
+    {
+      "id": "v1_cam1",
+      "position": [
+        0.30347,
+        -0.79803,
+        0.52211
+      ],
+      "target": [
+        0.70492,
+        0.11003,
+        0.40265
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v1_cam1.png"
+    },
+    {
+      "id": "v2_cam0",
+      "position": [
+        0.17718,
+        0.77835,
+        0.27091
+      ],
+      "target": [
+        0.72765,
+        -0.04939,
+        0.37971
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v2_cam0.png"
+    },
+    {
+      "id": "v2_cam1",
+      "position": [
+        -0.13803,
+        0.4378,
+        0.52665
+      ],
+      "target": [
+        0.71827,
+        -0.05951,
+        0.38732
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v2_cam1.png"
+    },
+    {
+      "id": "v3_cam0",
+      "position": [
+        -0.12982,
+        -0.37678,
+        0.28853
+      ],
+      "target": [
+        0.72566,
+        0.13591,
+        0.36129
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v3_cam0.png"
+    },
+    {
+      "id": "v3_cam1",
+      "position": [
+        -0.15999,
+        -0.24049,
+        0.60566
+      ],
+      "target": [
+        0.72924,
+        0.11977,
+        0.32371
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v3_cam1.png"
+    },
+    {
+      "id": "v4_cam0",
+      "position": [
+        0.06241,
+        0.53431,
+        0.22664
+      ],
+      "target": [
+        0.84332,
+        -0.06864,
+        0.38987
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v4_cam0.png"
+    },
+    {
+      "id": "v4_cam1",
+      "position": [
+        0.37057,
+        0.78249,
+        0.28534
+      ],
+      "target": [
+        0.76405,
+        -0.13248,
+        0.37477
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v4_cam1.png"
+    },
+    {
+      "id": "v5_cam1",
+      "position": [
+        0.01443,
+        -0.82381,
+        0.6148
+      ],
+      "target": [
+        0.58892,
+        -0.05949,
+        0.32192
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v5_cam1.png"
+    },
+    {
+      "id": "v6_cam0",
+      "position": [
+        -0.08163,
+        -0.28045,
+        0.35786
+      ],
+      "target": [
+        0.85293,
+        0.06757,
+        0.28389
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v6_cam0.png"
+    },
+    {
+      "id": "v6_cam1",
+      "position": [
+        0.18784,
+        -0.64297,
+        0.4608
+      ],
+      "target": [
+        0.82595,
+        0.10387,
+        0.27358
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v6_cam1.png"
+    },
+    {
+      "id": "v7_cam0",
+      "position": [
+        0.41939,
+        0.89478,
+        0.6094
+      ],
+      "target": [
+        0.77173,
+        0.00418,
+        0.32185
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v7_cam0.png"
+    },
+    {
+      "id": "v7_cam1",
+      "position": [
+        0.13595,
+        -0.71668,
+        0.01795
+      ],
+      "target": [
+        0.77021,
+        -0.00445,
+        0.31868
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v7_cam1.png"
+    },
+    {
+      "id": "v8_cam0",
+      "position": [
+        0.01759,
+        -0.8213,
+        0.5062
+      ],
+      "target": [
+        0.56903,
+        0.00287,
+        0.37712
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v8_cam0.png"
+    },
+    {
+      "id": "v8_cam1",
+      "position": [
+        -0.33831,
+        -0.44177,
+        0.25651
+      ],
+      "target": [
+        0.53108,
+        0.04334,
+        0.3505
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v8_cam1.png"
+    },
+    {
+      "id": "v9_cam0",
+      "position": [
+        0.34849,
+        0.64957,
+        0.543
+      ],
+      "target": [
+        0.85934,
+        -0.17049,
+        0.28504
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v9_cam0.png"
+    },
+    {
+      "id": "v9_cam1",
+      "position": [
+        0.23566,
+        -0.67264,
+        0.19699
+      ],
+      "target": [
+        0.88041,
+        0.07636,
+        0.34964
+      ],
+      "fov_deg": 60.0,
+      "image": "assets/cabinet_cams/v9_cam1.png"
+    }
+  ]
+}

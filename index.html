@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Viewpoint Generalizable Manipulation Policies for Visual Sim-to-Real Transfer</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <meta name="description" content="VGP: a Viewpoint-Generalizable manipulation Policy that pairs geometry-aware visual features with robot-frame 4D rotary attention for zero-shot visual sim-to-real transfer under random camera viewpoints.">
+
+  <!-- Social / Open Graph -->
+  <meta property="og:title" content="Viewpoint Generalizable Manipulation Policies for Visual Sim-to-Real Transfer">
+  <meta property="og:description" content="VGP transfers zero-shot from simulation to a real robot under random camera configurations.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/images/teaser.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Three.js for the interactive camera-frustum viewer (Cabinet section).
+       Pin a version; vendor these two files into assets/ if you want zero external requests. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+
+  <style>
+    :root {
+      --accent:        #2f5b9c;   /* steel blue, tied to the result figures */
+      --ours:          #b04257;   /* brick red, used only for link hover */
+      --best-bg:       #e9f0fa;
+      --ink:           #1c1f24;
+      --muted:         #5d6573;
+      --line:          #e6e8ee;
+      --bg:            #ffffff;
+      --bg-alt:        #f7f8fb;
+      --maxw:          1040px;
+      --textw:         760px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--ours); }
+
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
+
+    /* ---------------- Header ---------------- */
+    header.hero {
+      padding: 4.5rem 0 1.5rem;
+      text-align: center;
+      border-bottom: 1px solid var(--line);
+    }
+    .eyebrow {
+      font-size: 0.82rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 1.1rem;
+    }
+    h1.title {
+      font-size: clamp(1.7rem, 3.6vw, 2.7rem);
+      line-height: 1.18;
+      font-weight: 800;
+      letter-spacing: -0.015em;
+      margin: 0 auto 1.2rem;
+      max-width: 900px;
+    }
+    h1.title .vgp { color: var(--accent); }
+    .authors { font-size: 1.05rem; font-weight: 500; color: var(--ink); }
+    .affil   { font-size: 0.98rem; color: var(--muted); margin-top: 0.25rem; }
+
+    .btn-row {
+      display: flex; flex-wrap: wrap; gap: 0.6rem;
+      justify-content: center; margin-top: 1.8rem;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.6rem 1.15rem;
+      background: var(--ink); color: #fff;
+      border-radius: 999px;
+      font-size: 0.94rem; font-weight: 600;
+      border: 1px solid var(--ink);
+      transition: transform .12s ease, background .12s ease;
+    }
+    .btn:hover { background: var(--accent); border-color: var(--accent); color: #fff; transform: translateY(-1px); }
+    .btn.secondary { background: #fff; color: var(--ink); border-color: #d3d7e0; }
+    .btn.secondary:hover { color: var(--accent); border-color: var(--accent); background: #fff; }
+    .btn .ic { font-size: 1.05rem; line-height: 1; }
+
+    /* ---------------- Sections ---------------- */
+    section { padding: 3.2rem 0; }
+    section.alt { background: var(--bg-alt); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+    h2.section-title {
+      text-align: center;
+      font-size: 1.7rem;
+      font-weight: 750;
+      letter-spacing: -0.01em;
+      margin: 0 0 0.4rem;
+    }
+    .section-sub {
+      text-align: center; color: var(--muted);
+      max-width: 640px; margin: 0 auto 2rem;
+      font-size: 1rem;
+    }
+    .lead {
+      max-width: var(--textw); margin: 0 auto;
+      text-align: justify; font-size: 1.04rem;
+    }
+    .lead p { margin: 0 0 1rem; }
+
+    /* Inverted-V wordmark: a real "A" flipped 180deg so it matches Inter alongside "GP" */
+    .forall { display: inline-block; transform: rotate(180deg); }
+
+    /* Illuminated drop cap for the opening line of the abstract */
+    .dropcap {
+      float: left;
+      width: 8.5rem; height: 8.5rem;   /* spans ~5 lines of the abstract */
+      margin: 0.2rem 1rem 0.3rem 0;
+      line-height: 1;
+      shape-outside: margin-box;
+    }
+    @media (max-width: 480px) {
+      .dropcap { width: 5.6rem; height: 5.6rem; margin-right: 0.75rem; }
+    }
+
+    /* ---------------- Figures ---------------- */
+    figure.fig { margin: 1.6rem auto 0; text-align: center; }
+    figure.fig img {
+      max-width: 100%; height: auto;
+      border-radius: 12px;
+    }
+    figure.fig.bordered img {
+      border: 1px solid var(--line);
+      box-shadow: 0 6px 26px rgba(20,30,55,0.07);
+    }
+    figcaption {
+      max-width: var(--textw); margin: 0.9rem auto 0;
+      font-size: 0.9rem; color: var(--muted);
+      text-align: left; line-height: 1.55;
+    }
+    figcaption b { color: var(--ink); }
+
+    /* ---------------- Two key ideas cards ---------------- */
+    .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; max-width: var(--maxw); margin: 2.2rem auto 0; }
+    .card {
+      background: #fff; border: 1px solid var(--line); border-radius: 14px;
+      padding: 1.4rem 1.5rem;
+    }
+    .card .num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 1.9rem; height: 1.9rem; border-radius: 8px;
+      background: var(--accent); color: #fff; font-weight: 700; font-size: 0.95rem;
+      margin-bottom: 0.7rem;
+    }
+    .card h3 { margin: 0 0 0.5rem; font-size: 1.12rem; font-weight: 700; }
+    .card p { margin: 0; font-size: 0.97rem; color: #353b45; }
+
+    /* ---------------- Findings (analysis) ---------------- */
+    .finding { max-width: 860px; margin: 0 auto 2.4rem; }
+    .finding:last-child { margin-bottom: 0; }
+    .finding h3 {
+      font-size: 1.16rem; font-weight: 700; margin: 0 0 0.5rem;
+      display: flex; align-items: baseline; gap: 0.6rem;
+    }
+    .finding h3 .tag {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      color: var(--accent); background: var(--best-bg); padding: 0.16rem 0.55rem; border-radius: 6px;
+    }
+    .finding p { margin: 0 0 1rem; color: #353b45; font-size: 1rem; }
+
+    /* ---------------- Tables ---------------- */
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table.data {
+      border-collapse: collapse; width: 100%;
+      font-size: 0.94rem; margin: 0 auto;
+      background: #fff;
+    }
+    table.data caption {
+      caption-side: top; text-align: left; color: var(--muted);
+      font-size: 0.86rem; margin-bottom: 0.6rem; line-height: 1.5;
+    }
+    table.data th, table.data td {
+      padding: 0.55rem 0.85rem; text-align: center; border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    table.data thead th {
+      font-weight: 600; color: var(--muted); border-bottom: 2px solid #d7dbe4;
+      font-size: 0.86rem;
+    }
+    table.data thead th.group { color: var(--ink); border-bottom: 1px solid var(--line); }
+    table.data td.method, table.data th.method { text-align: left; font-weight: 500; }
+    table.data tr.ours td.method { font-weight: 700; color: var(--ink); }
+    table.data td.best { background: #e7e9ed; font-weight: 700; color: var(--ink); }
+    table.data td.second { text-decoration: underline; text-underline-offset: 3px; }
+    table.data .subhead td { text-align: left; font-style: italic; color: var(--muted); font-size: 0.85rem; padding-top: 0.7rem; background:#fff; }
+    .legend { text-align: center; font-size: 0.82rem; color: var(--muted); margin-top: 0.7rem; }
+    .legend .swatch { display:inline-block; width:0.8rem; height:0.8rem; border-radius:3px; background:#e7e9ed; border:1px solid var(--line); vertical-align:-1px; margin-right:0.25rem; }
+
+    .table-block { max-width: 720px; margin: 0 auto; }
+    .table-block.wide { max-width: 860px; }
+
+    /* ---------------- Video placeholder ---------------- */
+    .video-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: var(--maxw); margin: 1.6rem auto 0; }
+    .video-grid video { width: 100%; border-radius: 10px; background: #000; display: block; }
+    .video-card { text-align: center; }
+    .video-card p { margin: 0.5rem 0 0; font-size: 0.9rem; color: var(--muted); }
+    .placeholder {
+      border: 2px dashed #cfd4de; border-radius: 12px; padding: 2.4rem 1.5rem; text-align: center;
+      color: var(--muted); max-width: 760px; margin: 1.4rem auto 0; background: #fff; font-size: 0.95rem;
+    }
+    @media (max-width: 820px) { .video-grid { grid-template-columns: 1fr 1fr; } }
+
+    /* ---------------- Video carousel ---------------- */
+    .carousel { position: relative; max-width: 860px; margin: 1.2rem auto 0; }
+    .car-viewport { position: relative; overflow: hidden; border-radius: 10px; }
+    .car-track { display: flex; transition: transform 0.35s ease; }
+    .car-slide { flex: 0 0 100%; min-width: 100%; }
+    .car-slide video { width: 100%; display: block; background: #000; }
+    .car-btn {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      width: 2.2rem; height: 2.2rem; border-radius: 999px;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.9);
+      color: var(--ink); font: 600 1.3rem/1 'Inter', sans-serif; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 2px 10px rgba(20,30,55,0.14); transition: background .12s, color .12s; z-index: 2;
+    }
+    .car-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .car-btn.prev { left: 10px; } .car-btn.next { right: 10px; }
+    .car-hint { text-align: center; color: var(--muted); font-size: 0.85rem; margin: 0.45rem auto 0; }
+    .car-caption { text-align: center; min-height: 1.2em; margin-top: 0.6rem; font-size: 0.9rem; color: var(--muted); }
+    .car-dots { display: flex; justify-content: center; gap: 0.45rem; margin-top: 0.4rem; }
+    .car-dots button {
+      width: 0.5rem; height: 0.5rem; border-radius: 999px; border: none; padding: 0;
+      background: #c4ccd8; cursor: pointer; transition: background .12s, transform .12s;
+    }
+    .car-dots button.active { background: var(--accent); transform: scale(1.3); }
+
+    /* ---------------- BibTeX ---------------- */
+    pre.bibtex {
+      max-width: var(--textw); margin: 1.2rem auto 0; background: #1c1f24; color: #e7eaf0;
+      padding: 1.2rem 1.4rem; border-radius: 12px; overflow-x: auto;
+      font-family: 'Roboto Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.86rem; line-height: 1.6; text-align: left;
+    }
+    pre.bibtex .k { color: #8fb7ff; }
+
+    /* ---------------- Footer ---------------- */
+    footer { text-align: center; padding: 2.6rem 0 3rem; color: var(--muted); font-size: 0.88rem; border-top: 1px solid var(--line); }
+    footer a { font-weight: 500; }
+
+    @media (max-width: 720px) {
+      .cards { grid-template-columns: 1fr; }
+      .lead, figcaption { text-align: left; }
+    }
+
+    /* ---------------- Interactive camera-frustum viewer ---------------- */
+    .cam-viewer {
+      display: grid; grid-template-columns: 1.5fr 1fr; gap: 1.1rem;
+      max-width: var(--maxw); margin: 1.8rem auto 0; align-items: stretch;
+    }
+    .cam-stage {
+      position: relative; border: 1px solid var(--line); border-radius: 14px;
+      overflow: hidden; background: var(--bg-alt);
+      box-shadow: 0 6px 26px rgba(20,30,55,0.07); min-height: 400px;
+    }
+    .cam-stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+    .cam-hint {
+      position: absolute; left: 12px; bottom: 10px;
+      font: 500 0.72rem/1 "Roboto Mono", monospace; color: var(--muted);
+      background: rgba(255,255,255,0.78); padding: 5px 9px; border-radius: 7px;
+      pointer-events: none; backdrop-filter: blur(3px);
+    }
+    .cam-fallback {
+      position: absolute; inset: 0; display: none;
+      align-items: center; justify-content: center; text-align: center;
+      padding: 1.5rem; color: var(--muted); font-size: 0.9rem;
+    }
+    .cam-panel {
+      display: flex; flex-direction: column; border: 1px solid var(--line);
+      border-radius: 14px; overflow: hidden; background: #fff;
+      box-shadow: 0 6px 26px rgba(20,30,55,0.07);
+    }
+    .cam-panel-img {
+      flex: 1 1 auto; position: relative; background: var(--bg-alt);
+      display: flex; align-items: center; justify-content: center; min-height: 240px;
+    }
+    .cam-panel-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .cam-panel-meta {
+      border-top: 1px solid var(--line); padding: 0.7rem 0.9rem;
+      font: 500 0.82rem/1.4 "Roboto Mono", monospace; color: var(--ink);
+    }
+    .cam-panel-meta span { color: var(--muted); font-weight: 400; }
+    @media (max-width: 720px) {
+      .cam-viewer { grid-template-columns: 1fr; }
+      .cam-stage { min-height: 340px; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ============================ HERO ============================ -->
+  <header class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Conference on Robot Learning &middot; CoRL 2026 &middot; Under Review</div>
+      <h1 class="title">Viewpoint Generalizable Manipulation Policies for Visual Sim-to-Real Transfer</h1>
+      <div class="authors">Anonymous Author(s)</div>
+      <div class="affil">Paper under double-blind review</div>
+
+      <div class="btn-row">
+        <!-- Paper link intentionally omitted until an arXiv / camera-ready version is available. -->
+        <a class="btn" href="#method"><span class="ic">&#9881;</span> Method</a>
+        <a class="btn secondary" href="#results"><span class="ic">&#9783;</span> Results</a>
+        <a class="btn secondary" href="#sim2real"><span class="ic">&#129302;</span> Sim-to-Real</a>
+        <a class="btn secondary" href="#bibtex"><span class="ic">&#10078;</span> BibTeX</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================ TEASER ============================ -->
+  <section style="padding-top:2.4rem;">
+    <div class="wrap">
+      <figure class="fig">
+        <img src="assets/images/teaser.png" alt="VGP teaser: sampling camera poses, generating data in simulation, and zero-shot transfer to a real robot under random cameras.">
+        <figcaption>
+          <b>Top Left:</b> We sample a wide distribution of camera poses in simulation.
+          <b>Middle:</b> We generate demonstrations under these randomized views and train <span class="forall" role="img" aria-label="V">A</span>GP, which grounds
+          visual, proprioception, and action tokens in a shared robot frame.
+          <b>Right:</b> The policy transfers zero-shot to a real robot under random camera configurations.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============================ ABSTRACT ============================ -->
+  <section class="alt" id="abstract">
+    <div class="wrap">
+      <h2 class="section-title">Abstract</h2>
+      <div class="lead">
+        <p>
+          <img class="dropcap" src="assets/V_dropcap_bw.svg" alt="V">isual imitation learning is a promising approach to training robot manipulation policies capable of
+          completing a wide variety of tasks. However, policies today remain brittle to viewpoint perturbations,
+          making deployment in diverse environments a challenge. In this paper, we explore policy learning approaches
+          that remain performant under such camera viewpoint shifts. We find that viewpoint generalization improves
+          when the visual encoder is <b>geometry-aware</b> and the action head is an <b>equal participant in geometric
+          reasoning</b>. We pair geometry-aware visual features with a relative positional encoding that places visual,
+          proprioception, and action tokens in a shared frame, attending to features in a viewpoint-robust manner. On a
+          suite of simulated tasks spanning a wide range of camera poses, our policy outperforms 2D and 3D baselines,
+          while matching fixed-camera baselines. As a practical consequence, our policy transfers <b>zero-shot</b> from
+          simulation to the real world under random camera configurations.
+        </p>
+        <p style="text-align:center; color:var(--muted); font-size:0.92rem; margin-top:0.4rem;">
+          <b>Keywords:</b> Viewpoint generalization &middot; Visual imitation learning &middot; Sim-to-real
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ METHOD ============================ -->
+  <section id="method">
+    <div class="wrap">
+      <h2 class="section-title"><span class="forall" role="img" aria-label="V">A</span>GP &mdash; A Viewpoint-Generalizable Policy</h2>
+      <p class="section-sub">
+        <span class="forall" role="img" aria-label="V">A</span>GP is a <b><u>V</u></b>iewpoint <b><u>G</u></b>eneralizable Manipulation <b><u>P</u></b>olicy designed to remain performant <i>for all views</i> in the training camera distribution.
+      </p>
+
+      <div class="lead">
+        <p>
+          <span class="forall" role="img" aria-label="V">A</span>GP distills multi-viewpoint demonstrations into a viewpoint-generalizable visuomotor policy via imitation
+          learning. Given <i>V</i> calibrated RGB views, <span class="forall" role="img" aria-label="V">A</span>GP encodes them with a single transformer initialized from a
+          visual geometry foundation model to produce geometry-aware image tokens. Every image, proprioception, and
+          action token is localized in the robot's base frame with a 3D position and a timestep, and a 4D rotary
+          Diffusion Transformer (DiT) attends over them, trained with a flow-matching objective.
+        </p>
+      </div>
+
+      <figure class="fig bordered">
+        <img src="assets/images/architecture.png" alt="VGP architecture diagram: Depth Anything 3 multi-view encoder feeding a 4D-RoPE DiT action head.">
+        <figcaption>
+          <b><span class="forall" role="img" aria-label="V">A</span>GP architecture.</b> <i>V</i> calibrated RGB views are encoded by a Depth Anything 3 backbone applying
+          within-view self-attention and cross-view global self-attention, producing geometry-aware image tokens. Every
+          image, proprioception, and action token is assigned a spatiotemporal position (<i>x, y, z, h</i>) and attended
+          over with a 4D rotary positional encoding. An <i>N</i>-block DiT cross-attends from proprioception/action
+          tokens to image tokens and self-attends over the action chunk.
+        </figcaption>
+      </figure>
+
+      <div class="cards">
+        <div class="card">
+          <span class="num">1</span>
+          <h3>Geometry-aware multi-view encoder</h3>
+          <p>
+            The backbone is initialized from <b>Depth Anything 3</b>, which recovers dense 3D geometry from images, so
+            its features encode scene structure across viewpoints. Within-view and cross-view self-attention fuse
+            information across cameras, yielding scene-aware features <i>without</i> 3D input. Critically, we keep the
+            full set of dense tokens &mdash; compressing them into a single global vector sharply hurts viewpoint
+            robustness.
+          </p>
+        </div>
+        <div class="card">
+          <span class="num">2</span>
+          <h3>Robot-frame 4D rotary attention</h3>
+          <p>
+            Each visual, proprioception, and action token gets a 4D coordinate (<i>x, y, z, h</i>) &mdash; its 3D
+            position in the robot base frame plus a temporal index &mdash; and a <b>4D RoPE</b> grounds every token in
+            the geometry of the scene. Unlike image-space positional encodings, the geometric relationship between any
+            visual token and the gripper is invariant to the camera pose.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ TASK ============================ -->
+  <section class="alt" id="task">
+    <div class="wrap">
+      <h2 class="section-title">The Cabinet-Opening Task</h2>
+      <p class="section-sub">
+        Open an articulated cabinet from randomly sampled over-the-shoulder views.
+      </p>
+
+      <div class="lead">
+        <p>
+          We train a policy to imitate an expert motion planner opening a cabinet with a small knob handle from
+          PartNet-Mobility. In contrast to front-facing setups that look toward the robot, we randomly sample two
+          over-the-shoulder camera views per trajectory, plus a wrist-mounted camera that keeps the object visible. We
+          generate 989 demonstration trajectories (100k observation-action pairs) and evaluate on 100 held-out
+          trajectories with freshly sampled camera poses.
+        </p>
+      </div>
+
+      <!-- Interactive camera-frustum viewer. Click a green frustum to load that camera's rendered view.
+           (Replaces the former static assets/images/frustum.png figure, which is still on disk.) -->
+      <div class="cam-viewer" id="camViewer">
+        <div class="cam-stage" id="camStage">
+          <canvas id="camCanvas"></canvas>
+          <div class="cam-hint">drag to orbit &middot; scroll to zoom &middot; click a camera</div>
+          <div class="cam-fallback" id="camFallback">
+            Couldn&rsquo;t start the 3D viewer &mdash; WebGL appears to be unavailable in this browser.
+          </div>
+        </div>
+        <div class="cam-panel">
+          <div class="cam-panel-img"><img id="camImage" alt="Rendered view from the selected camera."></div>
+          <div class="cam-panel-meta" id="camMeta">Click a frustum to load its view&hellip;</div>
+        </div>
+      </div>
+      <p class="section-sub" style="margin:0.9rem auto 0; max-width:760px; font-size:0.9rem;">
+        <b style="color:var(--ink);">Camera pose distribution (interactive).</b> Each green frustum is one sampled
+        over-the-shoulder camera; drag to orbit the scene and click a frustum to load that camera&rsquo;s rendered view.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============================ RESULTS ============================ -->
+  <section id="results">
+    <div class="wrap">
+      <h2 class="section-title">Results</h2>
+      <p class="section-sub">
+        Under randomized cameras, <span class="forall" role="img" aria-label="V">A</span>GP outperforms or performs competitively with 2D and 3D
+        viewpoint-generalization baselines across all tasks.
+      </p>
+
+      <div class="table-block wide">
+        <div class="table-scroll">
+          <table class="data">
+            <caption><b>Table 1.</b> <span class="forall" role="img" aria-label="V">A</span>GP vs. viewpoint-generalization baselines on opening an articulated cabinet and on the
+              &ldquo;Do You Know Where Your Camera Is?&rdquo; benchmark. <b style="background:#e7e9ed; padding:0.05em 0.35em; border-radius:3px;">Best</b> shaded, <u>second-best</u> underlined.</caption>
+            <thead>
+              <tr>
+                <th class="method" rowspan="2">Method</th>
+                <th class="group">Articulated Objects (Norm. Open)</th>
+                <th class="group" colspan="3">Do You Know Where Your Camera Is? (Success&nbsp;%)</th>
+              </tr>
+              <tr>
+                <th>Cabinet</th>
+                <th>Pick Place Can</th>
+                <th>Square Assembly</th>
+                <th>Roll Ball</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="method">Pl&uuml;cker Raymaps</td>
+                <td>33</td><td>72</td><td class="second">34</td><td>30</td>
+              </tr>
+              <tr>
+                <td class="method">Canonical Views</td>
+                <td class="second">48</td><td>70</td><td>28</td><td>36</td>
+              </tr>
+              <tr>
+                <td class="method">3D FlowMatch Actor (3DFA)</td>
+                <td>39</td><td class="second">78</td><td>24</td><td class="best">42</td>
+              </tr>
+              <tr class="ours">
+                <td class="method"><span class="forall" role="img" aria-label="V">A</span>GP (Ours)</td>
+                <td class="best">70.5</td><td class="best">88</td><td class="best">48</td><td class="second">40</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="legend"><span class="swatch"></span>Best &nbsp;&nbsp; <u>x</u> Second-best</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ ANALYSIS ============================ -->
+  <section class="alt" id="analysis">
+    <div class="wrap">
+      <h2 class="section-title">What Matters for Viewpoint Generalization?</h2>
+      <p class="section-sub">
+        Three ablations on the Cabinet task isolate the design choices behind <span class="forall" role="img" aria-label="V">A</span>GP &mdash; and several are non-obvious
+        from fixed-camera experiments.
+      </p>
+
+      <!-- Finding 1 -->
+      <div class="finding">
+        <h3><span class="tag">Finding 1</span> Compressing visual information hurts action generation</h3>
+        <p>
+          Many policies squeeze visual observations into a single global vector before the action head. This is fine
+          under a fixed camera, but under randomized cameras the action head loses the spatial information it needs to
+          reason across viewpoints. Keeping all image tokens (no compression) is decisive.
+        </p>
+        <div class="table-block">
+          <div class="table-scroll">
+            <table class="data">
+              <caption><b>Table 2.</b> Effect of visual token compression on the Cabinet task (Norm. Open).</caption>
+              <thead>
+                <tr><th class="method">Method</th><th>Fixed camera</th><th>Randomized cameras</th></tr>
+              </thead>
+              <tbody>
+                <tr class="subhead"><td colspan="3">Standard 2D policy</td></tr>
+                <tr><td class="method">Diffusion Policy (spatial softmax)</td><td>55.1</td><td>32.4</td></tr>
+                <tr class="subhead"><td colspan="3"><span class="forall" role="img" aria-label="V">A</span>GP with token compression</td></tr>
+                <tr><td class="method">Spatial softmax (1 token/image)</td><td>63.2</td><td class="second">48</td></tr>
+                <tr><td class="method">Max pooling (1 token/image)</td><td class="second">65.2</td><td>45</td></tr>
+                <tr class="ours"><td class="method"><span class="forall" role="img" aria-label="V">A</span>GP &mdash; no compression</td><td class="best">68.6</td><td class="best">70.5</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Finding 2 -->
+      <div class="finding">
+        <h3><span class="tag">Finding 2</span> Geometry-aware multi-view encoders generalize better</h3>
+        <p>
+          Finetuning matters, cross-view attention adds further gains, and swapping a DINOv2 backbone for the
+          geometry-grounded Depth Anything 3 encoder &mdash; under the same finetuning and cross-view recipe &mdash;
+          improves performance from 67 to 70.5, indicating that geometry-aware features are more viewpoint-robust.
+        </p>
+        <div class="table-block">
+          <div class="table-scroll">
+            <table class="data">
+              <caption><b>Table 3.</b> Visual encoder ablation, Cabinet under randomized cameras (Norm. Open).</caption>
+              <thead><tr><th class="method">Visual encoder</th><th>Norm. Open</th></tr></thead>
+              <tbody>
+                <tr><td class="method">ResNet-18 (ImageNet, finetuned)</td><td>55</td></tr>
+                <tr><td class="method">DINOv2 ViT (frozen)</td><td>53</td></tr>
+                <tr><td class="method">DINOv2 ViT (finetuned)</td><td>64</td></tr>
+                <tr><td class="method">DINOv2 ViT (finetuned, cross-view)</td><td class="second">67</td></tr>
+                <tr class="ours"><td class="method">DA3 (finetuned, cross-view) &mdash; ours</td><td class="best">70.5</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Finding 3 -->
+      <div class="finding">
+        <h3><span class="tag">Finding 3</span> Robot-frame positional encoding drives robustness</h3>
+        <p>
+          Image-space positional encodings are fragile under randomized cameras: the same patch index can map to
+          different 3D locations as the camera moves, so the encoding carries no consistent geometric meaning. Grounding
+          every token in the robot frame with 4D RoPE lifts performance from 47.2 to 70.5.
+        </p>
+        <div class="table-block">
+          <div class="table-scroll">
+            <table class="data">
+              <caption><b>Table 4.</b> Effect of positional encoding for actions, Cabinet under randomized cameras (Norm. Open).</caption>
+              <thead><tr><th class="method">Method</th><th>Norm. Open</th></tr></thead>
+              <tbody>
+                <tr><td class="method">ACT (learned)</td><td>43</td></tr>
+                <tr><td class="method"><span class="forall" role="img" aria-label="V">A</span>GP (learned + sinusoidal)</td><td class="second">47.2</td></tr>
+                <tr class="ours"><td class="method"><span class="forall" role="img" aria-label="V">A</span>GP &mdash; 4D RoPE</td><td class="best">70.5</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ SIM2REAL ============================ -->
+  <section id="sim2real">
+    <div class="wrap">
+      <h2 class="section-title">Zero-Shot Sim-to-Real Transfer</h2>
+      <p class="section-sub">
+        A single policy trained entirely in simulation opens real microwaves under camera poses that were never seen
+        during data generation.
+      </p>
+
+      <div class="lead">
+        <p>
+          We build on Articubot, an automated pipeline for generating demonstrations of a Franka robot opening
+          articulated objects. From its object set we select five microwaves, generate 2,358 demonstrations and over
+          100,000 state-action pairs, and render them in IsaacLab with extensive domain randomization over microwave
+          colors and textures, the robot, the table, and the background. At deployment, real-world depth is obtained
+          with Fast-FoundationStereo, and the camera poses &mdash; unknown during data generation but within the
+          randomized training distribution &mdash; are sampled fresh. We report grasp success and normalized opening
+          over 10 trials across 3 camera configurations.
+        </p>
+      </div>
+
+      <figure class="fig">
+        <img src="assets/images/sim2real_bars.png" alt="Bar charts: grasp success and normalized opening for 3DFA, Plücker Raymaps, and VGP." style="max-width:680px;">
+        <figcaption style="text-align:center;">
+          <b>Sim-to-real transfer on microwaves.</b> Policies trained in simulation and evaluated zero-shot in the real
+          world under randomly sampled camera poses. Averaged over 10 trials across 3 camera configurations.
+        </figcaption>
+      </figure>
+
+      <figure class="fig bordered" style="margin-top:2.6rem;">
+        <img src="assets/images/trajectory_grid_isaac.png" alt="Grid of simulated microwave-opening rollouts in IsaacLab with domain randomization." style="max-width:760px;">
+        <figcaption>
+          <b>Simulation training data (IsaacLab).</b> Microwave-opening demonstrations rendered with extensive domain
+          randomization over object textures, robot, table, and background. Each row is a distinct scene; columns are
+          timesteps.
+        </figcaption>
+      </figure>
+
+      <h3 style="text-align:center; font-size:1.2rem; margin:2.8rem 0 0;">Real-World Rollouts &mdash; Successes</h3>
+      <p class="section-sub" style="margin:0.5rem auto 1.2rem;">
+        Zero-shot sim-to-real on the real robot under randomized camera viewpoints.
+      </p>
+
+      <div class="carousel" data-carousel>
+        <div class="car-viewport">
+          <button class="car-btn prev" aria-label="Previous video">&#8249;</button>
+          <div class="car-track">
+            <div class="car-slide"><video playsinline loop muted controls preload="metadata" src="assets/videos/succ0.mp4"></video></div>
+            <div class="car-slide"><video playsinline loop muted controls preload="metadata" src="assets/videos/succ1.mp4"></video></div>
+            <div class="car-slide"><video playsinline loop muted controls preload="metadata" src="assets/videos/succ2.mp4"></video></div>
+            <div class="car-slide"><video playsinline loop muted controls preload="metadata" src="assets/videos/succ3.mp4"></video></div>
+            <div class="car-slide"><video playsinline loop muted controls preload="metadata" src="assets/videos/succ4.mp4"></video></div>
+            <div class="car-slide"><video playsinline loop muted controls preload="metadata" src="assets/videos/succ5.mp4"></video></div>
+          </div>
+          <button class="car-btn next" aria-label="Next video">&#8250;</button>
+        </div>
+        <p class="car-hint">Use the &#8249; / &#8250; arrows to see more examples.</p>
+        <div class="car-caption"></div>
+        <div class="car-dots"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ FAILURE CASES ============================ -->
+  <section class="alt" id="failures">
+    <div class="wrap">
+      <h2 class="section-title">Failure Cases</h2>
+      <p class="section-sub">
+        Representative failure modes of the zero-shot sim-to-real policy on the real robot.
+      </p>
+
+      <div class="carousel" data-carousel>
+        <div class="car-viewport">
+          <button class="car-btn prev" aria-label="Previous video">&#8249;</button>
+          <div class="car-track">
+            <div class="car-slide" data-caption="Missed grasp"><video playsinline loop muted controls preload="metadata" src="assets/videos/miss_grasp_fail.mp4"></video></div>
+            <div class="car-slide" data-caption="Unstable grasp"><video playsinline loop muted controls preload="metadata" src="assets/videos/unstable_grasp_fail.mp4"></video></div>
+            <div class="car-slide" data-caption="Joint-limit violation"><video playsinline loop muted controls preload="metadata" src="assets/videos/joint_limit_fail.mp4"></video></div>
+          </div>
+          <button class="car-btn next" aria-label="Next video">&#8250;</button>
+        </div>
+        <p class="car-hint">Use the &#8249; / &#8250; arrows to see more examples.</p>
+        <div class="car-caption"></div>
+        <div class="car-dots"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ CONCLUSION ============================ -->
+  <section id="conclusion">
+    <div class="wrap">
+      <h2 class="section-title">Takeaways</h2>
+      <div class="lead">
+        <p>
+          We study <b>viewpoint generalization</b>, relaxing the common constraint of fixed cameras at training and
+          deployment. Our experiments identify two drivers: (1) visual encoders that retain dense scene representations
+          from multi-view backbones encourage viewpoint-robust performance, and (2) grounding every visual,
+          proprioception, and action token in the geometry of the scene matters. We instantiate these recommendations as
+          <b><span class="forall" role="img" aria-label="V">A</span>GP</b>, a policy that is performant <i>for all views</i> in the camera distribution, matches fixed-camera
+          baselines, and transfers zero-shot from simulation to a real robot under random cameras.
+        </p>
+        <p style="color:var(--muted); font-size:0.96rem;">
+          <b>Limitations.</b> <span class="forall" role="img" aria-label="V">A</span>GP requires calibrated RGB-D input at both training and deployment; removing this
+          requirement (estimating extrinsics or operating on monocular RGB with learned depth priors) is an important
+          direction. We also demonstrate sim-to-real as a proof of concept on a single object category; scaling to
+          large, heterogeneous real-world datasets remains open.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ BIBTEX ============================ -->
+  <section class="alt" id="bibtex">
+    <div class="wrap">
+      <h2 class="section-title">BibTeX</h2>
+      <p class="section-sub" style="margin-bottom:0;">Coming soon.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      Anonymized project page for a CoRL 2026 submission &mdash; please do not distribute.<br>
+      Template inspired by academic project pages. Built for
+      <a href="https://vgp-sim2real.github.io/">vgp-sim2real.github.io</a>.
+    </div>
+  </footer>
+
+  <!-- ============================ Camera-frustum viewer ============================ -->
+  <script type="module">
+  import * as THREE from 'three';
+  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+  import { GLTFLoader }    from 'three/addons/loaders/GLTFLoader.js';
+
+  /* ===========================================================================
+     CONFIG.  Camera poses + per-view images load from POSES_URL; the scene mesh
+     from SCENE_GLB (both generated offline). poses.json schema:
+       { "up_axis": "z",
+         "cameras": [ { "id", "position":[x,y,z], "target":[x,y,z],
+                        "fov_deg", "image": "assets/cabinet_cams/<id>.png" }, ... ] }
+     Coords are simulator Z-up, converted to Three.js Y-up via zUp() + a -90°X
+     rotation of the GLB (SCENE_UP='z').
+     =========================================================================== */
+  const POSES_URL   = 'assets/cabinet_cams/poses.json';
+  const SCENE_GLB   = 'assets/scene/cabinet_scene.glb';
+  const SCENE_UP    = 'z';                 // 'z' (sim Z-up) or 'y'
+  const FRUSTUM_LEN = 0.12;                // length of the frustum pyramid (world units)
+  const zUp = ([x, y, z]) => [x, z, -y];   // sim Z-up -> Three.js Y-up
+
+  // --- load camera poses + image paths from poses.json ---
+  async function loadCameras() {
+    try {
+      const res = await fetch(POSES_URL, { cache: 'no-cache' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const isZ = (data.up_axis || 'z').toLowerCase() === 'z';
+      return data.cameras.map((c, i) => {
+        let position = c.position.slice();
+        let target = c.target ? c.target.slice() : null;
+        if (!target && c.quaternion_wxyz) {            // -Z forward (OpenGL/Three.js)
+          const [w, x, y, z] = c.quaternion_wxyz;
+          const dir = new THREE.Vector3(0, 0, -1)
+            .applyQuaternion(new THREE.Quaternion(x, y, z, w));
+          target = [position[0] + dir.x, position[1] + dir.y, position[2] + dir.z];
+        }
+        if (!target) target = [0, 0, 0];
+        if (isZ) { position = zUp(position); target = zUp(target); }
+        return {
+          id: c.id || ('cam' + (i + 1)),
+          position, target,
+          fovDeg: c.fov_deg ?? 60,
+          image: c.image,
+        };
+      });
+    } catch (e) {
+      console.error('[cam-viewer] could not load ' + POSES_URL, e);
+      return [];
+    }
+  }
+  const CAMERAS = await loadCameras();
+
+  /* ===========================================================================
+     Below this line is the viewer machinery — usually no need to edit.
+     =========================================================================== */
+  const stage    = document.getElementById('camStage');
+  const canvas   = document.getElementById('camCanvas');
+  const imgEl    = document.getElementById('camImage');
+  const metaEl   = document.getElementById('camMeta');
+  const fallback = document.getElementById('camFallback');
+
+  const COL_BASE = new THREE.Color(0x2f9e63);   // green frustum (matches the paper figure)
+  const COL_HI   = new THREE.Color(0x49cf8a);   // hover
+  const COL_SEL  = new THREE.Color(0xb04257);   // selected (page --ours)
+
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  } catch (e) {
+    fallback.style.display = 'flex';
+    throw e;
+  }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf7f8fb);
+
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 100);
+  camera.position.set(1.7, 1.35, 2.0);
+
+  const controls = new OrbitControls(camera, canvas);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.minDistance = 0.7;
+  controls.maxDistance = 6;
+  controls.maxPolarAngle = Math.PI * 0.49;      // stay above the floor
+  controls.target.set(0, 0, 0);   // replaced by frameContent() once cameras load
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x9aa2ad, 3.4));
+  scene.add(new THREE.AmbientLight(0xffffff, 1.9));             // floor brightness from every angle
+  const key = new THREE.DirectionalLight(0xffffff, 2.8);
+  key.position.set(2.5, 4, 2);
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xffffff, 2.1);       // opposite side, kills dark angles
+  fill.position.set(-3, 2.5, -2);
+  scene.add(fill);
+
+  // --- scene mesh from the GLB ---
+  new GLTFLoader().load(
+    SCENE_GLB,
+    (gltf) => {
+      const model = gltf.scene;
+      if (SCENE_UP === 'z') model.rotation.x = -Math.PI / 2;  // Z-up -> Y-up
+      scene.add(model);
+      // NB: don't refit to the model — the GLB includes a large ground plane.
+      // The frame stays fixed on the frustum cluster (set below).
+    },
+    undefined,
+    (err) => console.warn('[cam-viewer] scene GLB not loaded:', err)
+  );
+
+  // --- build one frustum (wireframe pyramid + translucent quad pick-target) ---
+  const pickTargets = [];
+  const frustums = [];
+  function buildFrustum(cam, idx) {
+    const P = new THREE.Vector3().fromArray(cam.position);
+    const T = new THREE.Vector3().fromArray(cam.target);
+    const f = new THREE.Vector3().subVectors(T, P).normalize();
+    const worldUp = Math.abs(f.y) > 0.97 ? new THREE.Vector3(0, 0, 1) : new THREE.Vector3(0, 1, 0);
+    const r = new THREE.Vector3().crossVectors(f, worldUp).normalize();
+    const u = new THREE.Vector3().crossVectors(r, f).normalize();
+    const L = FRUSTUM_LEN;
+    const h = L * Math.tan((cam.fovDeg * Math.PI / 180) / 2);
+    const w = h * (4 / 3);                          // display aspect of the frustum
+    const C = P.clone().addScaledVector(f, L);
+    const TL = C.clone().addScaledVector(r, -w).addScaledVector(u,  h);
+    const TR = C.clone().addScaledVector(r,  w).addScaledVector(u,  h);
+    const BR = C.clone().addScaledVector(r,  w).addScaledVector(u, -h);
+    const BL = C.clone().addScaledVector(r, -w).addScaledVector(u, -h);
+
+    const group = new THREE.Group();
+
+    // edges
+    const edges = [P,TL, P,TR, P,BR, P,BL, TL,TR, TR,BR, BR,BL, BL,TL];
+    const lgeo = new THREE.BufferGeometry().setFromPoints(edges);
+    const lmat = new THREE.LineBasicMaterial({ color: COL_BASE.clone(), transparent: true, opacity: 0.85 });
+    group.add(new THREE.LineSegments(lgeo, lmat));
+
+    // far-plane quad (the click/hover target)
+    const qgeo = new THREE.BufferGeometry();
+    qgeo.setAttribute('position', new THREE.Float32BufferAttribute([
+      TL.x,TL.y,TL.z, TR.x,TR.y,TR.z, BR.x,BR.y,BR.z, BL.x,BL.y,BL.z], 3));
+    qgeo.setIndex([0, 1, 2, 0, 2, 3]);
+    qgeo.computeVertexNormals();
+    const qmat = new THREE.MeshBasicMaterial({
+      color: COL_BASE.clone(), transparent: true, opacity: 0.12,
+      side: THREE.DoubleSide, depthWrite: false,
+    });
+    const quad = new THREE.Mesh(qgeo, qmat);
+    quad.userData.idx = idx;
+    group.add(quad);
+
+    // small camera body at the apex
+    const bmat = new THREE.MeshStandardMaterial({ color: 0x39414e, roughness: 0.6 });
+    const bodyM = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.04, 0.06), bmat);
+    bodyM.position.copy(P);
+    bodyM.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(P, T, u));
+    group.add(bodyM);
+
+    scene.add(group);
+    pickTargets.push(quad);
+    frustums.push({ lmat, qmat });
+    [P, TL, TR, BR, BL].forEach((pt) => contentBox.expandByPoint(pt));
+  }
+  // --- frame the view to whatever we loaded (scene placement is arbitrary) ---
+  const contentBox = new THREE.Box3();
+  function frameContent(box, fill = 1.2) {
+    if (box.isEmpty()) return;
+    const center = box.getCenter(new THREE.Vector3());
+    const radius = 0.5 * box.getSize(new THREE.Vector3()).length() || 1;
+    const dist = (radius * fill) / Math.sin((camera.fov * Math.PI / 180) / 2);
+    const dir = new THREE.Vector3(1, 0.7, 1).normalize();
+    controls.target.copy(center);
+    camera.position.copy(center).addScaledVector(dir, dist);
+    camera.near = Math.max(0.01, radius * 0.02);   // small + fixed: no white-out on zoom-in
+    camera.far = Math.max(60, dist + radius * 12); // keep the GLB floor visible far out
+    camera.updateProjectionMatrix();
+    controls.minDistance = radius * 0.05;          // allow zooming right in
+    controls.maxDistance = dist * 4;
+    controls.update();
+  }
+  CAMERAS.forEach(buildFrustum);
+  frameContent(contentBox);
+
+  // --- selection / hover styling ---
+  let selected = -1, hovered = -1;
+  function restyle() {
+    frustums.forEach((fr, i) => {
+      const sel = i === selected, hov = i === hovered;
+      fr.lmat.color.copy(sel ? COL_SEL : hov ? COL_HI : COL_BASE);
+      fr.lmat.opacity = sel ? 1.0 : 0.85;
+      fr.qmat.color.copy(sel ? COL_SEL : hov ? COL_HI : COL_BASE);
+      fr.qmat.opacity = sel ? 0.30 : hov ? 0.20 : 0.12;
+    });
+  }
+  function selectCamera(idx) {
+    selected = idx;
+    restyle();
+    imgEl.src = CAMERAS[idx].image;
+    metaEl.innerHTML = `<span>click another frustum to compare viewpoints</span>`;
+  }
+
+  // --- pointer picking (distinguish click from orbit-drag) ---
+  const raycaster = new THREE.Raycaster();
+  const pointer = new THREE.Vector2();
+  let downX = 0, downY = 0;
+  function toNDC(ev) {
+    const rect = canvas.getBoundingClientRect();
+    pointer.x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
+    pointer.y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+  function pick() {
+    raycaster.setFromCamera(pointer, camera);
+    return raycaster.intersectObjects(pickTargets, false)[0] || null;
+  }
+  canvas.addEventListener('pointerdown', (e) => { downX = e.clientX; downY = e.clientY; });
+  canvas.addEventListener('pointerup', (e) => {
+    if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) return;  // was a drag
+    toNDC(e); const hit = pick();
+    if (hit) selectCamera(hit.object.userData.idx);
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    toNDC(e); const hit = pick();
+    hovered = hit ? hit.object.userData.idx : -1;
+    canvas.style.cursor = hit ? 'pointer' : 'grab';
+    restyle();
+  });
+
+  // --- size + render loop (paused while off-screen) ---
+  function resize() {
+    const w = stage.clientWidth, h = stage.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  new ResizeObserver(resize).observe(stage);
+  resize();
+
+  let running = false;
+  function loop() {
+    if (!running) return;
+    requestAnimationFrame(loop);
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  new IntersectionObserver((entries) => {
+    entries.forEach((en) => {
+      running = en.isIntersecting;
+      if (running) loop();
+    });
+  }, { threshold: 0.05 }).observe(stage);
+
+  if (CAMERAS.length) selectCamera(0);   // start with a view loaded
+  </script>
+
+  <!-- ============================ Video carousels ============================ -->
+  <script>
+  document.querySelectorAll('[data-carousel]').forEach((car) => {
+    const track  = car.querySelector('.car-track');
+    const slides = Array.from(car.querySelectorAll('.car-slide'));
+    const capEl  = car.querySelector('.car-caption');
+    const dotsEl = car.querySelector('.car-dots');
+    let i = 0;
+
+    slides.forEach((_, k) => {
+      const d = document.createElement('button');
+      d.setAttribute('aria-label', 'Go to video ' + (k + 1));
+      d.addEventListener('click', () => go(k));
+      dotsEl.appendChild(d);
+    });
+    const dots = Array.from(dotsEl.children);
+
+    function go(n) {
+      i = (n + slides.length) % slides.length;
+      track.style.transform = `translateX(${-i * 100}%)`;
+      dots.forEach((d, k) => d.classList.toggle('active', k === i));
+      if (capEl) capEl.textContent = slides[i].dataset.caption || '';
+      slides.forEach((s, k) => {
+        const v = s.querySelector('video');
+        if (!v) return;
+        if (k === i) { v.play().catch(() => {}); } else { v.pause(); }
+      });
+    }
+
+    car.querySelector('.car-btn.prev').addEventListener('click', () => go(i - 1));
+    car.querySelector('.car-btn.next').addEventListener('click', () => go(i + 1));
+    go(0);
+  });
+  </script>
+
+</body>
+</html>
