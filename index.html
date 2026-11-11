@@ -213,6 +213,11 @@
     table.data td.best { background: #e7e9ed; font-weight: 700; color: var(--ink); }
     table.data td.second { text-decoration: underline; text-underline-offset: 3px; }
     table.data .subhead td { text-align: left; font-style: italic; color: var(--muted); font-size: 0.85rem; padding-top: 0.7rem; background:#fff; }
+    /* Vertical rule between the fixed-camera column and the randomized-camera columns */
+    table.data.split tbody tr:not(.subhead) td:nth-child(2),
+    table.data.split thead tr:first-child th:nth-child(2),
+    table.data.split thead tr:nth-child(2) th:first-child,
+    table.data.split tr.subhead td:first-child { border-right: 2px solid #d7dbe4; }
     .legend { text-align: center; font-size: 0.82rem; color: var(--muted); margin-top: 0.7rem; }
     .legend .swatch { display:inline-block; width:0.8rem; height:0.8rem; border-radius:3px; background:#e7e9ed; border:1px solid var(--line); vertical-align:-1px; margin-right:0.25rem; }
 
@@ -500,7 +505,7 @@
 
       <div class="table-block wide">
         <div class="table-scroll">
-          <table class="data">
+          <table class="data split">
             <caption><b>Table 1.</b> Approaches to incorporating camera information for viewpoint generalization on opening an articulated cabinet and on the
               &ldquo;Do You Know Where Your Camera Is?&rdquo; benchmark. Unless marked <i>fixed camera</i>, cameras are randomized during training and evaluation. Mean &plusmn; std. over 3 seeds. <b style="background:#e7e9ed; padding:0.05em 0.35em; border-radius:3px;">Best</b> shaded, <u>second-best</u> underlined. *Under the fixed-camera setting, canonical views coincide with the fixed camera views, so Canonical Views is identical to the &ldquo;w/ Sinusoidal&rdquo; ablation in Table 2 and we report the same result.</caption>
             <thead>
@@ -559,12 +564,13 @@
         <p>
           Many policies squeeze visual observations into a single global vector before the action head. This is fine
           under a fixed camera, but under randomized cameras the action head loses the spatial information it needs to
-          reason across viewpoints &mdash; on Pick Place Can, Diffusion Policy collapses from 56.1 (fixed) to 1.3
-          (randomized). Keeping all image tokens (no compression) is decisive.
+          reason across viewpoints &mdash; on Cabinet, Diffusion Policy drops from 56.1 (fixed) to 33.2 (randomized),
+          and with randomized cameras it reaches only 1.3 on Pick Place Can. Keeping all image tokens (no compression)
+          is decisive.
         </p>
         <div class="table-block wide">
           <div class="table-scroll">
-            <table class="data">
+            <table class="data split">
               <caption><b>Table 2.</b> Visual token compression, positional encoding, and visual encoder ablations, varied relative to <span class="forall" role="img" aria-label="V">A</span>GP. First column: fixed camera. Remaining columns: cameras randomized during training and evaluation. Mean over 3 seeds.</caption>
               <thead>
                 <tr>
@@ -577,7 +583,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr class="subhead"><td colspan="6">Token compression</td></tr>
+                <tr class="subhead"><td colspan="2">Token compression</td><td colspan="4"></td></tr>
                 <tr><td class="method">Diffusion Policy</td><td>56.1</td><td>33.2</td><td>1.3</td><td>2.7</td><td>12.4</td></tr>
                 <tr><td class="method">w/ Spatial Softmax</td><td>55.2</td><td>33.4</td><td>56.0</td><td class="second">22.7</td><td>37.4</td></tr>
                 <tr><td class="method">w/ Max Pooling</td><td class="second">60.0</td><td class="second">35.1</td><td class="second">61.3</td><td class="second">22.7</td><td class="second">39.7</td></tr>
@@ -599,7 +605,7 @@
         </p>
         <div class="table-block wide">
           <div class="table-scroll">
-            <table class="data">
+            <table class="data split">
               <caption><b>Table 2 (cont.).</b> Visual encoder ablation.</caption>
               <thead>
                 <tr>
@@ -632,7 +638,7 @@
         </p>
         <div class="table-block wide">
           <div class="table-scroll">
-            <table class="data">
+            <table class="data split">
               <caption><b>Table 2 (cont.).</b> Positional encoding ablation.</caption>
               <thead>
                 <tr>
@@ -711,7 +717,7 @@
       </div>
       <div class="table-block">
         <div class="table-scroll">
-          <table class="data">
+          <table class="data split">
             <caption><b>Table 4.</b> Comparison against DP3 on the Cabinet task.</caption>
             <thead><tr><th class="method">Method</th><th>Fixed camera</th><th>Randomized cameras</th></tr></thead>
             <tbody>
